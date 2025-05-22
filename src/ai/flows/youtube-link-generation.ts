@@ -37,10 +37,12 @@ const prompt = ai.definePrompt({
   prompt: `The user is asking about storing "{{{foodItem}}}". Their specific question is: "{{{question}}}".
 
 Please provide up to 3 relevant YouTube video links that would directly help answer this question.
+It is crucial that these links point to videos that are **currently available and publicly accessible** on YouTube.
 Think about what good YouTube search queries would be for this, then find videos matching those queries.
 For example, if the food item is "avocado" and the question is "how to stop it from browning", good search terms might be "keep avocado from browning" or "store cut avocado".
 
-Respond with a JSON object containing a "videoLinks" array of YouTube video URLs. Ensure each item in the "videoLinks" array is a valid YouTube URL string. If no relevant videos are found, return an empty array.`,
+Respond with a JSON object containing a "videoLinks" array of YouTube video URLs. Ensure each item in the "videoLinks" array is a valid YouTube URL string.
+If no relevant and currently available videos are found, return an empty array.`,
 });
 
 const generateYoutubeLinksFlow = ai.defineFlow(
