@@ -18,8 +18,8 @@ const FoodStorageChatbotInputSchema = z.object({
 export type FoodStorageChatbotInput = z.infer<typeof FoodStorageChatbotInputSchema>;
 
 const FoodStorageChatbotOutputSchema = z.object({
-  storageAdvice: z.string().describe('Advice on how to store the food item.'),
-  reasoning: z.string().describe('The reasoning behind the storage advice.'),
+  storageAdvice: z.string().describe('Advice on how to store the food item, formatted as bullet points.'),
+  reasoning: z.string().describe('The reasoning behind the storage advice, formatted as bullet points.'),
 });
 export type FoodStorageChatbotOutput = z.infer<typeof FoodStorageChatbotOutputSchema>;
 
@@ -33,12 +33,14 @@ const prompt = ai.definePrompt({
   output: {schema: FoodStorageChatbotOutputSchema},
   prompt: `You are an expert in food storage and preservation.
 
-  A user has a question about how to store a specific food item.  Provide detailed advice, and explain the reasoning behind your advice.
+  A user has a question about how to store a specific food item.
 
   Food Item: {{{foodItem}}}
   Question: {{{question}}}
 
   Respond in a conversational tone.
+  Format your 'storageAdvice' as a list of bullet points (e.g., using '-' or '*').
+  Format your 'reasoning' as a list of bullet points (e.g., using '-' or '*') explaining why the advice is given.
   `,
 });
 
