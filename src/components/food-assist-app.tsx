@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '@/types';
 import { foodStorageChatbot } from '@/ai/flows/food-storage-chatbot';
-import { generateYoutubeLink } from '@/ai/flows/youtube-link-generation'; // Updated import
+import { generateYoutubeLink } from '@/ai/flows/youtube-link-generation';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,8 +103,8 @@ export function FoodAssistApp() {
           });
       } else if (youtubeLinkResponse.searchQueryUsed) {
           toast({
-              title: "YouTube Search",
-              description: `Could not find a specific video for "${youtubeLinkResponse.searchQueryUsed}". Try a broader query.`,
+              title: "Video Suggestion",
+              description: `We couldn't find a direct video match. You can try the generated search query on YouTube.`,
               variant: "default",
               duration: 5000,
           });
@@ -231,7 +231,7 @@ export function FoodAssistApp() {
               <Youtube className="h-6 w-6 text-red-600" />
               Related Video
             </CardTitle>
-            <CardDescription>A suggested YouTube video for your current question.</CardDescription>
+            <CardDescription>A suggested YouTube video or search query for your question.</CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 min-h-[150px] flex flex-col justify-center">
             {isLoading && messages[messages.length -1]?.type === 'user' ? (
@@ -262,9 +262,38 @@ export function FoodAssistApp() {
                   </a>
                 </Button>
               </div>
+            ) : youtubeSearchQueryUsed ? (
+              <div className="space-y-3 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No direct video match found for the query:
+                </p>
+                <div className="p-2 bg-muted/60 rounded-md shadow-sm break-words inline-block">
+                    <span className="text-sm text-primary font-medium">
+                        "{youtubeSearchQueryUsed}"
+                    </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(youtubeSearchQueryUsed)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Search this query on YouTube
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+                <p className="text-xs text-muted-foreground pt-1">
+                  You can also try a broader question in the chat.
+                </p>
+              </div>
             ) : (
               <p className="text-sm text-center text-muted-foreground">
-                {youtubeSearchQueryUsed ? `No specific video found for query: "${youtubeSearchQueryUsed}".` : 'Ask a question to get a YouTube video suggestion!'}
+                Ask a question to get a YouTube video suggestion!
               </p>
             )}
           </CardContent>
