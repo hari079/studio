@@ -56,23 +56,10 @@ export function FoodSavvyApp() {
     }
   }, [messages]);
 
-  const formatChatHistoryForAI = (history: ChatMessage[]): string => {
-    return history
-      .map(msg => {
-        if (msg.type === 'user') {
-          return `User: (Food: ${msg.foodItem}) ${msg.originalQuestion}`;
-        } else if (msg.type === 'ai') {
-          return `AI: (Advice: ${msg.aiAdvice}) (Reasoning: ${msg.aiReasoning})`;
-        }
-        return ''; // Ignore system/error messages for this specific formatting
-      })
-      .filter(Boolean)
-      .join('\n');
-  };
-
   const onSubmit: SubmitHandler<ChatInputForm> = async (data) => {
     setIsLoading(true);
     setError(null);
+    setYoutubeLinks([]); // Clear previous links
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -97,21 +84,17 @@ export function FoodSavvyApp() {
         aiReasoning: aiResponse.reasoning,
         timestamp: new Date(),
       };
-      const updatedMessagesWithAI = [...newMessages, aiMessage];
-      setMessages(updatedMessagesWithAI);
+      setMessages(prev => [...prev, aiMessage]);
 
-      // Generate YouTube links based on the new chat history
-      const chatHistoryString = formatChatHistoryForAI(updatedMessagesWithAI);
-      if (chatHistoryString) {
-        const linksResponse = await generateYoutubeLinks({ chatHistory: chatHistoryString });
-        setYoutubeLinks(linksResponse.videoLinks);
-        if (linksResponse.videoLinks.length > 0) {
-            toast({
-                title: "YouTube Links Found!",
-                description: "We've found some related videos for you.",
-                duration: 3000,
-            });
-        }
+      // Generate YouTube links based on the current query
+      const linksResponse = await generateYoutubeLinks({ foodItem: data.foodItem, question: data.question });
+      setYoutubeLinks(linksResponse.videoLinks);
+      if (linksResponse.videoLinks.length > 0) {
+          toast({
+              title: "YouTube Links Found!",
+              description: "We've found some related videos for you.",
+              duration: 3000,
+          });
       }
 
     } catch (err) {
@@ -228,7 +211,7 @@ export function FoodSavvyApp() {
               <Youtube className="h-6 w-6 text-red-600" />
               Related Videos
             </CardTitle>
-            <CardDescription>Helpful YouTube videos based on your chat.</CardDescription>
+            <CardDescription>Helpful YouTube videos based on your current question.</CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6">
             {youtubeLinks.length > 0 ? (
@@ -241,7 +224,7 @@ export function FoodSavvyApp() {
               </ScrollArea>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {isLoading && messages.length > 1 ? 'Searching for videos...' : 'No videos generated yet. Ask a question to see related content!'}
+                {isLoading && messages.some(msg => msg.type === 'user') ? 'Searching for videos...' : 'No videos generated yet. Ask a question to see related content!'}
               </p>
             )}
           </CardContent>
@@ -250,3 +233,4 @@ export function FoodSavvyApp() {
     </div>
   );
 }
+
