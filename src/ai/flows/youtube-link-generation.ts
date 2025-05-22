@@ -34,15 +34,21 @@ const prompt = ai.definePrompt({
   name: 'youtubeLinkGenerationPrompt',
   input: {schema: GenerateYoutubeLinksInputSchema},
   output: {schema: GenerateYoutubeLinksOutputSchema},
-  prompt: `The user is asking about storing "{{{foodItem}}}". Their specific question is: "{{{question}}}".
+  prompt: `You are an expert YouTube video curator specializing in food storage. Given a food item and a question, your task is to find up to 3 **currently available and publicly accessible** YouTube video links that directly and effectively answer the user's question.
 
-Please provide up to 3 relevant YouTube video links that would directly help answer this question.
-It is crucial that these links point to videos that are **currently available and publicly accessible** on YouTube.
-Think about what good YouTube search queries would be for this, then find videos matching those queries.
-For example, if the food item is "avocado" and the question is "how to stop it from browning", good search terms might be "keep avocado from browning" or "store cut avocado".
+Follow these steps:
 
-Respond with a JSON object containing a "videoLinks" array of YouTube video URLs. Ensure each item in the "videoLinks" array is a valid YouTube URL string.
-If no relevant and currently available videos are found, return an empty array.`,
+1.  **Formulate Search Queries:** First, think of 2-3 effective YouTube search queries for the given \`{{{foodItem}}}\` and \`{{{question}}}\`. For example, if the food item is "avocado" and the question is "how to stop it from browning", good search terms might be "keep avocado from browning" or "store cut avocado".
+
+2.  **Identify Videos:** Imagine you are performing these searches on YouTube. From the (imagined) search results, select up to 3 videos that are most relevant, clear, and from reliable sources if possible (e.g., official channels, well-known culinary experts).
+
+3.  **Verify Availability (Crucial):** Only include links to videos that you have extremely high confidence are **currently online, public, and not private or deleted.** If you are unsure, do not include the link. It is better to return fewer (or even no) links than to return broken or irrelevant ones. Do not suggest videos that seem to be part of rapidly changing playlists or user-generated content that is likely to be removed.
+
+4.  **Format Output:** Respond with a JSON object containing a "videoLinks" array of YouTube video URLs. Ensure each item in the "videoLinks" array is a valid YouTube URL string. If no relevant and currently available videos are confidently found, return an empty array.
+
+User's Food Item: "{{{foodItem}}}"
+User's Question: "{{{question}}}"
+`,
 });
 
 const generateYoutubeLinksFlow = ai.defineFlow(

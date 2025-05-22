@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'FoodSavvy',
+  title: 'Food Assist',
   description: 'Get expert advice on food storage and related YouTube videos.',
 };
 

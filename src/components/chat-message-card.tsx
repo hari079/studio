@@ -35,7 +35,7 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
       <Card className={`max-w-xl shadow-md ${isUser ? 'bg-primary text-primary-foreground' : isError ? 'bg-destructive/10 border-destructive' : 'bg-card'}`}>
         <CardHeader className="p-4 pb-2">
           <CardTitle className={`text-sm font-semibold ${isUser ? 'text-right' : ''}`}>
-            {isUser ? 'You' : isError ? 'Error' : isSystem ? 'FoodSavvy Guide' : 'FoodSavvy AI'}
+            {isUser ? 'You' : isError ? 'Error' : isSystem ? 'Food Assist Guide' : 'Food Assist AI'}
             {message.foodItem && message.originalQuestion && isUser && (
               <span className="block text-xs font-normal opacity-80 mt-1">
                 Asked about: {message.foodItem} - "{message.originalQuestion}"
