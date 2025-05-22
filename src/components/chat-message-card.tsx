@@ -3,7 +3,7 @@
 
 import type { ChatMessage } from '@/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader } from '@/components/ui/card'; // Removed CardDescription, CardTitle as they are destructured below
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bot, User, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,24 +24,23 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
 
   useEffect(() => {
     const synth = window.speechSynthesis;
-    const handleEnd = () => setIsSpeaking(false);
-
-    const currentUtterance = utteranceRef.current;
-    if (currentUtterance) {
-      currentUtterance.addEventListener('end', handleEnd);
-    }
-
-    // Cleanup: remove event listener and cancel speech if component unmounts
+    // This cleanup function will run when the component unmounts.
     return () => {
-      if (currentUtterance) {
-        currentUtterance.removeEventListener('end', handleEnd);
-      }
-      if (synth.speaking && utteranceRef.current === currentUtterance) { // Only cancel if it's the current utterance
+      // If speech is active when the component unmounts, cancel it.
+      if (utteranceRef.current && synth.speaking) {
+        // utteranceRef.current holds the specific utterance for this card instance.
+        // We should cancel all speech synth can be speaking other utterances.
+        // However, to be precise, we'd ideally only cancel if utteranceRef.current is the one speaking.
+        // Since synth.cancel() stops all, and we are managing utteranceRef.current,
+        // it's generally safe in this context.
         synth.cancel();
       }
-      setIsSpeaking(false); // Reset speaking state on unmount or utterance change
+      // Ensure isSpeaking is false and ref is cleared on unmount,
+      // in case onend/onerror didn't fire before unmount.
+      setIsSpeaking(false); 
+      utteranceRef.current = null;
     };
-  }, [utteranceRef.current]); // Rerun effect if utteranceRef.current changes (though it's usually stable)
+  }, []); // Empty dependency array: runs once on mount for cleanup registration.
 
 
   const handleSpeak = () => {
@@ -51,12 +50,14 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
       return;
     }
 
-    if (isSpeaking) {
-      synth.cancel(); // This will trigger the 'end' event, which sets isSpeaking to false.
-      // setIsSpeaking(false); // Explicitly set, though 'end' event should handle it.
+    // If already speaking, stop the speech
+    if (isSpeaking && utteranceRef.current) {
+      synth.cancel(); // This will trigger utteranceRef.current.onend
+      // setIsSpeaking(false) and utteranceRef.current = null will be handled by onend
       return;
     }
 
+    // If not currently speaking, start new speech
     let textToSpeak = '';
     if (message.aiAdvice) textToSpeak += `Advice: ${message.aiAdvice}. `;
     if (message.aiReasoning) textToSpeak += `Reasoning: ${message.aiReasoning}. `;
@@ -67,29 +68,32 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
       else return; // Nothing to speak
     }
     
-    // Cancel any ongoing speech before starting a new one
+    // Cancel any *other* ongoing speech from other cards/sources before starting a new one
     if (synth.speaking) {
       synth.cancel();
     }
 
     const newUtterance = new SpeechSynthesisUtterance(textToSpeak);
-    utteranceRef.current = newUtterance; 
     
-    newUtterance.onstart = () => setIsSpeaking(true);
-    newUtterance.onend = () => { // This will also be called if synth.cancel() is called
+    newUtterance.onstart = () => {
+        setIsSpeaking(true);
+    };
+    newUtterance.onend = () => { 
       setIsSpeaking(false);
-      if (utteranceRef.current === newUtterance) { // Only clear if it's the same utterance
+      // Only clear the ref if it's this utterance that ended
+      if (utteranceRef.current === newUtterance) {
           utteranceRef.current = null;
       }
     };
     newUtterance.onerror = (event) => {
-      console.error('Speech synthesis error:', event);
+      console.error('Speech synthesis error reason:', event.error, 'Full event:', event);
       setIsSpeaking(false);
       if (utteranceRef.current === newUtterance) {
           utteranceRef.current = null;
       }
     };
     
+    utteranceRef.current = newUtterance; 
     synth.speak(newUtterance);
   };
 
@@ -106,7 +110,7 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
       <Card className={`max-w-xl shadow-md ${isUser ? 'bg-primary text-primary-foreground' : isError ? 'bg-destructive/10 border-destructive' : 'bg-card'}`}>
         <CardHeader className="p-4 pb-2">
           <div className="flex justify-between items-center">
-            <div className={`text-sm font-semibold ${isUser ? 'text-right' : ''}`}> {/* Replaced CardTitle */}
+            <div className={`text-sm font-semibold ${isUser ? 'text-right' : ''}`}>
               {isUser ? 'You' : isError ? 'Error' : isSystem ? 'Food Assist Guide' : 'Food Assist AI'}
               {message.foodItem && message.originalQuestion && isUser && (
                 <span className="block text-xs font-normal opacity-80 mt-1">
