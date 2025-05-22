@@ -31,7 +31,7 @@ export function FoodAssistApp() {
     {
       id: 'initial-greeting',
       type: 'system',
-      text: 'Welcome to Food Assist! Tell me about a food item and your storage question for it. For example, "Apples" and "How to keep them fresh longest?".',
+      text: 'Welcome to Food Assist! Ask me about any food item (especially fruits and vegetables) for storage tips, why those tips work, and its health benefits. For example, "Broccoli" and "How to keep it fresh in the fridge?".',
       timestamp: new Date(),
     }
   ]);
@@ -68,19 +68,19 @@ export function FoodAssistApp() {
       originalQuestion: data.question,
       timestamp: new Date(),
     };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    setMessages(prevMessages => [...prevMessages, userMessage]);
     form.reset();
 
     try {
-      // Get food storage advice
+      // Get food storage advice, reasoning, and health benefits
       const aiResponse = await foodStorageChatbot({ foodItem: data.foodItem, question: data.question });
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         type: 'ai',
-        text: '', // Main text not used if advice/reasoning present
+        text: '', // Main text not used if advice/reasoning/benefits present
         aiAdvice: aiResponse.storageAdvice,
         aiReasoning: aiResponse.reasoning,
+        aiHealthBenefits: aiResponse.healthBenefits,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, aiMessage]);
@@ -126,7 +126,7 @@ export function FoodAssistApp() {
               <Wand2 className="h-6 w-6 text-primary" />
               Chat with Food Assist AI
             </CardTitle>
-            <CardDescription>Ask about storing any food item, and get expert advice.</CardDescription>
+            <CardDescription>Ask about any food item for storage advice, reasoning, health benefits, and related videos.</CardDescription>
           </CardHeader>
           <ScrollArea className="flex-grow p-4 md:p-6" viewportRef={scrollAreaRef}>
             <div className="space-y-4 min-h-[300px]">
@@ -157,7 +157,7 @@ export function FoodAssistApp() {
                       <FormItem>
                         <FormLabel>Food Item</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Strawberries, Bread, Cheese" {...field} disabled={isLoading} />
+                          <Input placeholder="e.g., Apples, Spinach, Chicken" {...field} disabled={isLoading} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -170,7 +170,7 @@ export function FoodAssistApp() {
                       <FormItem>
                         <FormLabel>Your Question</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="e.g., How to prevent mold? Best way to freeze?" {...field} disabled={isLoading} className="min-h-[40px] md:min-h-[auto]" rows={1}/>
+                          <Textarea placeholder="e.g., How to store to keep fresh? Best way to freeze for later?" {...field} disabled={isLoading} className="min-h-[40px] md:min-h-[auto]" rows={1}/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -186,7 +186,7 @@ export function FoodAssistApp() {
                   ) : (
                     <>
                       <Send className="mr-2 h-4 w-4" />
-                      Get Storage Advice
+                      Get Food Advice
                     </>
                   )}
                 </Button>

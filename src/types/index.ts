@@ -1,3 +1,4 @@
+
 export interface ChatMessage {
   id: string;
   type: 'user' | 'ai' | 'error' | 'system';
@@ -6,5 +7,6 @@ export interface ChatMessage {
   originalQuestion?: string;
   aiAdvice?: string;
   aiReasoning?: string;
+  aiHealthBenefits?: string;
   timestamp: Date;
 }
