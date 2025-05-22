@@ -21,7 +21,7 @@ export type GenerateYoutubeLinksInput = z.infer<typeof GenerateYoutubeLinksInput
 
 const GenerateYoutubeLinksOutputSchema = z.object({
   videoLinks: z
-    .array(z.string().url())
+    .array(z.string()) // Removed .url() here
     .describe('An array of YouTube video links related to food storage.'),
 });
 export type GenerateYoutubeLinksOutput = z.infer<typeof GenerateYoutubeLinksOutputSchema>;
@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
   name: 'youtubeLinkGenerationPrompt',
   input: {schema: GenerateYoutubeLinksInputSchema},
   output: {schema: GenerateYoutubeLinksOutputSchema},
-  prompt: `Given the following chat history about food storage, generate a list of relevant YouTube video links that would be helpful to the user.\n\nChat History:\n{{{chatHistory}}}\n\nRespond with a JSON object containing a "videoLinks" array of YouTube video URLs.`,
+  prompt: `Given the following chat history about food storage, generate a list of relevant YouTube video links that would be helpful to the user.\n\nChat History:\n{{{chatHistory}}}\n\nRespond with a JSON object containing a "videoLinks" array of YouTube video URLs. Ensure each item in the "videoLinks" array is a valid YouTube URL string.`,
 });
 
 const generateYoutubeLinksFlow = ai.defineFlow(
