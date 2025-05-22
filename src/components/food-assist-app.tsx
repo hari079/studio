@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '@/types';
 import { foodStorageChatbot } from '@/ai/flows/food-storage-chatbot';
-import { generateYoutubeLinks } from '@/ai/flows/youtube-link-generation';
+import { generateYoutubeSearchQuery } from '@/ai/flows/youtube-link-generation';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,8 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ChatMessageCard } from '@/components/chat-message-card';
-import { YouTubeLinkCard } from '@/components/youtube-link-card';
-import { Loader2, Send, AlertTriangle, Wand2, Youtube, Bot } from 'lucide-react';
+import { Loader2, Send, AlertTriangle, Wand2, Youtube, Bot, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const chatInputSchema = z.object({
@@ -36,7 +35,7 @@ export function FoodAssistApp() {
       timestamp: new Date(),
     }
   ]);
-  const [youtubeLinks, setYoutubeLinks] = useState<string[]>([]);
+  const [youtubeSearchQuery, setYoutubeSearchQuery] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -59,7 +58,7 @@ export function FoodAssistApp() {
   const onSubmit: SubmitHandler<ChatInputForm> = async (data) => {
     setIsLoading(true);
     setError(null);
-    setYoutubeLinks([]); // Clear previous links
+    setYoutubeSearchQuery(null); // Clear previous search query
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -86,14 +85,14 @@ export function FoodAssistApp() {
       };
       setMessages(prev => [...prev, aiMessage]);
 
-      // Generate YouTube links based on the current query
-      const linksResponse = await generateYoutubeLinks({ foodItem: data.foodItem, question: data.question });
-      setYoutubeLinks(linksResponse.videoLinks);
-      if (linksResponse.videoLinks.length > 0) {
+      // Generate YouTube search query based on the current query
+      const searchQueryResponse = await generateYoutubeSearchQuery({ foodItem: data.foodItem, question: data.question });
+      setYoutubeSearchQuery(searchQueryResponse.searchQuery);
+      if (searchQueryResponse.searchQuery) {
           toast({
-              title: "YouTube Links Found!",
-              description: "We've found some related videos for you.",
-              duration: 3000,
+              title: "YouTube Search Query Generated!",
+              description: "Click the button below to search on YouTube.",
+              duration: 4000,
           });
       }
 
@@ -211,20 +210,36 @@ export function FoodAssistApp() {
               <Youtube className="h-6 w-6 text-red-600" />
               Related Videos
             </CardTitle>
-            <CardDescription>Helpful YouTube videos based on your current question.</CardDescription>
+            <CardDescription>Suggested YouTube search for your current question.</CardDescription>
           </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            {youtubeLinks.length > 0 ? (
-              <ScrollArea className="h-[400px] pr-3">
-                <div className="space-y-3">
-                  {youtubeLinks.map((link, index) => (
-                    <YouTubeLinkCard key={index} url={link} />
-                  ))}
-                </div>
-              </ScrollArea>
+          <CardContent className="p-4 md:p-6 min-h-[150px] flex flex-col justify-center">
+            {youtubeSearchQuery ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground mb-1">
+                  Suggested search query:
+                </p>
+                <p className="text-base font-semibold p-3 bg-muted rounded-md shadow-sm break-words">
+                  {youtubeSearchQuery}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(youtubeSearchQuery)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Search on YouTube
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                {isLoading && messages.some(msg => msg.type === 'user') ? 'Searching for videos...' : 'No videos generated yet. Ask a question to see related content!'}
+              <p className="text-sm text-center text-muted-foreground">
+                {isLoading && messages[messages.length -1]?.type === 'user' ? 'Generating search query...' : 'Ask a question to get a YouTube search suggestion!'}
               </p>
             )}
           </CardContent>

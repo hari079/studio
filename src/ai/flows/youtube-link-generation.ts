@@ -3,59 +3,59 @@
 'use server';
 
 /**
- * @fileOverview Generates YouTube video links related to a specific food storage query.
+ * @fileOverview Generates a YouTube search query related to a specific food storage query.
  *
- * - generateYoutubeLinks - A function that generates YouTube video links.
- * - GenerateYoutubeLinksInput - The input type for the generateYoutubeLinks function.
- * - GenerateYoutubeLinksOutput - The return type for the generateYoutubeLinks function.
+ * - generateYoutubeSearchQuery - A function that generates a YouTube search query.
+ * - GenerateYoutubeSearchQueryInput - The input type for the generateYoutubeSearchQuery function.
+ * - GenerateYoutubeSearchQueryOutput - The return type for the generateYoutubeSearchQuery function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const GenerateYoutubeLinksInputSchema = z.object({
+const GenerateYoutubeSearchQueryInputSchema = z.object({
   foodItem: z.string().describe('The specific food item the user is asking about.'),
   question: z.string().describe('The specific question the user has about the food item.'),
 });
-export type GenerateYoutubeLinksInput = z.infer<typeof GenerateYoutubeLinksInputSchema>;
+export type GenerateYoutubeSearchQueryInput = z.infer<typeof GenerateYoutubeSearchQueryInputSchema>;
 
-const GenerateYoutubeLinksOutputSchema = z.object({
-  videoLinks: z
-    .array(z.string())
-    .describe('An array of YouTube video links relevant to the food item and question.'),
+const GenerateYoutubeSearchQueryOutputSchema = z.object({
+  searchQuery: z
+    .string()
+    .describe('A YouTube search query string optimized to find relevant videos for the food item and question.'),
 });
-export type GenerateYoutubeLinksOutput = z.infer<typeof GenerateYoutubeLinksOutputSchema>;
+export type GenerateYoutubeSearchQueryOutput = z.infer<typeof GenerateYoutubeSearchQueryOutputSchema>;
 
-export async function generateYoutubeLinks(input: GenerateYoutubeLinksInput): Promise<GenerateYoutubeLinksOutput> {
-  return generateYoutubeLinksFlow(input);
+export async function generateYoutubeSearchQuery(input: GenerateYoutubeSearchQueryInput): Promise<GenerateYoutubeSearchQueryOutput> {
+  return generateYoutubeSearchQueryFlow(input);
 }
 
 const prompt = ai.definePrompt({
-  name: 'youtubeLinkGenerationPrompt',
-  input: {schema: GenerateYoutubeLinksInputSchema},
-  output: {schema: GenerateYoutubeLinksOutputSchema},
-  prompt: `You are an expert YouTube video curator specializing in food storage. Given a food item and a question, your task is to find up to 3 **currently available and publicly accessible** YouTube video links that directly and effectively answer the user's question.
+  name: 'youtubeSearchQueryGenerationPrompt',
+  input: {schema: GenerateYoutubeSearchQueryInputSchema},
+  output: {schema: GenerateYoutubeSearchQueryOutputSchema},
+  prompt: `You are an expert YouTube search curator specializing in food storage.
+Given a food item and a question, your task is to generate **one single, effective YouTube search query string**.
+This query string will be used directly by the user to search on YouTube for relevant videos.
 
-Follow these steps:
-
-1.  **Formulate Search Queries:** First, think of 2-3 effective YouTube search queries for the given \`{{{foodItem}}}\` and \`{{{question}}}\`. For example, if the food item is "avocado" and the question is "how to stop it from browning", good search terms might be "keep avocado from browning" or "store cut avocado".
-
-2.  **Identify Videos:** Imagine you are performing these searches on YouTube. From the (imagined) search results, select up to 3 videos that are most relevant, clear, and from reliable sources if possible (e.g., official channels, well-known culinary experts).
-
-3.  **Verify Availability (Crucial):** Only include links to videos that you have extremely high confidence are **currently online, public, and not private or deleted.** If you are unsure, do not include the link. It is better to return fewer (or even no) links than to return broken or irrelevant ones. Do not suggest videos that seem to be part of rapidly changing playlists or user-generated content that is likely to be removed.
-
-4.  **Format Output:** Respond with a JSON object containing a "videoLinks" array of YouTube video URLs. Ensure each item in the "videoLinks" array is a valid YouTube URL string. If no relevant and currently available videos are confidently found, return an empty array.
+**Do NOT provide URLs or full video titles.** Only provide the search query text itself.
 
 User's Food Item: "{{{foodItem}}}"
 User's Question: "{{{question}}}"
+
+Example:
+If Food Item is "avocado" and Question is "how to stop it from browning", a good search query is "how to keep avocado from browning".
+If Food Item is "berries" and Question is "best way to wash and store", a good search query is "wash and store berries to last longer".
+
+Generate the best possible YouTube search query based on the user's input.
 `,
 });
 
-const generateYoutubeLinksFlow = ai.defineFlow(
+const generateYoutubeSearchQueryFlow = ai.defineFlow(
   {
-    name: 'generateYoutubeLinksFlow',
-    inputSchema: GenerateYoutubeLinksInputSchema,
-    outputSchema: GenerateYoutubeLinksOutputSchema,
+    name: 'generateYoutubeSearchQueryFlow',
+    inputSchema: GenerateYoutubeSearchQueryInputSchema,
+    outputSchema: GenerateYoutubeSearchQueryOutputSchema,
   },
   async input => {
     const {output} = await prompt(input);
