@@ -27,16 +27,12 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
     // This cleanup function will run when the component unmounts.
     return () => {
       // If speech is active when the component unmounts, cancel it.
+      // This will trigger onend or onerror for the utterance.
       if (utteranceRef.current && synth.speaking) {
-        // utteranceRef.current holds the specific utterance for this card instance.
-        // We should cancel all speech synth can be speaking other utterances.
-        // However, to be precise, we'd ideally only cancel if utteranceRef.current is the one speaking.
-        // Since synth.cancel() stops all, and we are managing utteranceRef.current,
-        // it's generally safe in this context.
         synth.cancel();
       }
-      // Ensure isSpeaking is false and ref is cleared on unmount,
-      // in case onend/onerror didn't fire before unmount.
+      // Ensure this component's state is reset on unmount,
+      // regardless of whether onend/onerror fired immediately.
       setIsSpeaking(false); 
       utteranceRef.current = null;
     };
@@ -50,10 +46,10 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
       return;
     }
 
-    // If already speaking, stop the speech
+    // If already speaking (this card's utterance), stop the speech
     if (isSpeaking && utteranceRef.current) {
-      synth.cancel(); // This will trigger utteranceRef.current.onend
-      // setIsSpeaking(false) and utteranceRef.current = null will be handled by onend
+      synth.cancel(); // This will trigger utteranceRef.current.onend or .onerror
+      // State updates (isSpeaking, utteranceRef) are handled by onend/onerror
       return;
     }
 
@@ -70,7 +66,7 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
     
     // Cancel any *other* ongoing speech from other cards/sources before starting a new one
     if (synth.speaking) {
-      synth.cancel();
+      synth.cancel(); // This will trigger onend/onerror for any currently speaking utterance(s)
     }
 
     const newUtterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -86,7 +82,11 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
       }
     };
     newUtterance.onerror = (event) => {
-      console.error('Speech synthesis error reason:', event.error, 'Full event:', event);
+      if (event.error === 'interrupted' || event.error === 'canceled') {
+        console.info('Speech synthesis stopped:', event.error, 'Full event:', event);
+      } else {
+        console.error('Speech synthesis error reason:', event.error, 'Full event:', event);
+      }
       setIsSpeaking(false);
       if (utteranceRef.current === newUtterance) {
           utteranceRef.current = null;
@@ -131,7 +131,10 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
             <div className="mb-3">
               <p className="font-medium text-base">Advice:</p>
               <ul className="list-disc list-inside space-y-1 text-sm whitespace-pre-wrap">
-                {message.aiAdvice.split('\\n').map((item, index) => item.trim().replace(/^- |^\* /,'') && <li key={`advice-${index}`}>{item.trim().replace(/^- |^\* /,'')}</li>)}
+                {message.aiAdvice.split('\\n').map((item, index) => {
+                  const trimmedItem = item.trim().replace(/^- |^\* /,'');
+                  return trimmedItem && <li key={`advice-${index}`}>{trimmedItem}</li>;
+                })}
               </ul>
             </div>
           )}
@@ -139,7 +142,10 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
             <div className="mb-3">
               <p className="font-medium text-base">Reasoning:</p>
                <ul className="list-disc list-inside space-y-1 text-sm whitespace-pre-wrap">
-                {message.aiReasoning.split('\\n').map((item, index) => item.trim().replace(/^- |^\* /,'') && <li key={`reasoning-${index}`}>{item.trim().replace(/^- |^\* /,'')}</li>)}
+                {message.aiReasoning.split('\\n').map((item, index) => {
+                  const trimmedItem = item.trim().replace(/^- |^\* /,'');
+                  return trimmedItem && <li key={`reasoning-${index}`}>{trimmedItem}</li>;
+                })}
               </ul>
             </div>
           )}
@@ -147,7 +153,10 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
             <div>
               <p className="font-medium text-base">Health Benefits:</p>
               <ul className="list-disc list-inside space-y-1 text-sm whitespace-pre-wrap">
-                {message.aiHealthBenefits.split('\\n').map((item, index) => item.trim().replace(/^- |^\* /,'') && <li key={`health-${index}`}>{item.trim().replace(/^- |^\* /,'')}</li>)}
+                {message.aiHealthBenefits.split('\\n').map((item, index) => {
+                  const trimmedItem = item.trim().replace(/^- |^\* /,'');
+                  return trimmedItem && <li key={`health-${index}`}>{trimmedItem}</li>;
+                })}
               </ul>
             </div>
           )}
