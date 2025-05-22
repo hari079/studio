@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ChatMessageCard } from '@/components/chat-message-card';
 import { YouTubeLinkCard } from '@/components/youtube-link-card';
-import { Loader2, Send, AlertTriangle, Wand2, Youtube } from 'lucide-react';
+import { Loader2, Send, AlertTriangle, Wand2, Youtube, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const chatInputSchema = z.object({
