@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '@/types';
 import { foodStorageChatbot } from '@/ai/flows/food-storage-chatbot';
-import { generateYoutubeSearchQuery } from '@/ai/flows/youtube-link-generation';
+import { generateYoutubeLink } from '@/ai/flows/youtube-link-generation'; // Updated import
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,11 +31,12 @@ export function FoodAssistApp() {
     {
       id: 'initial-greeting',
       type: 'system',
-      text: 'Welcome to Food Assist! Ask me about any food item (especially fruits and vegetables) for storage tips, why those tips work, and its health benefits. For example, "Broccoli" and "How to keep it fresh in the fridge?".',
+      text: 'Welcome to Food Assist! Ask me about any food item for storage tips, why those tips work, its health benefits, and a relevant YouTube video.',
       timestamp: new Date(),
     }
   ]);
-  const [youtubeSearchQuery, setYoutubeSearchQuery] = useState<string | null>(null);
+  const [youtubeVideoUrl, setYoutubeVideoUrl] = useState<string | null>(null);
+  const [youtubeSearchQueryUsed, setYoutubeSearchQueryUsed] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -58,7 +59,8 @@ export function FoodAssistApp() {
   const onSubmit: SubmitHandler<ChatInputForm> = async (data) => {
     setIsLoading(true);
     setError(null);
-    setYoutubeSearchQuery(null); // Clear previous search query
+    setYoutubeVideoUrl(null); // Clear previous video URL
+    setYoutubeSearchQueryUsed(null);
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -73,11 +75,16 @@ export function FoodAssistApp() {
 
     try {
       // Get food storage advice, reasoning, and health benefits
-      const aiResponse = await foodStorageChatbot({ foodItem: data.foodItem, question: data.question });
+      const aiResponsePromise = foodStorageChatbot({ foodItem: data.foodItem, question: data.question });
+      // Generate YouTube link
+      const youtubeLinkPromise = generateYoutubeLink({ foodItem: data.foodItem, question: data.question });
+
+      const [aiResponse, youtubeLinkResponse] = await Promise.all([aiResponsePromise, youtubeLinkPromise]);
+      
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         type: 'ai',
-        text: '', // Main text not used if advice/reasoning/benefits present
+        text: '', 
         aiAdvice: aiResponse.storageAdvice,
         aiReasoning: aiResponse.reasoning,
         aiHealthBenefits: aiResponse.healthBenefits,
@@ -85,13 +92,27 @@ export function FoodAssistApp() {
       };
       setMessages(prev => [...prev, aiMessage]);
 
-      // Generate YouTube search query based on the current query
-      const searchQueryResponse = await generateYoutubeSearchQuery({ foodItem: data.foodItem, question: data.question });
-      setYoutubeSearchQuery(searchQueryResponse.searchQuery);
-      if (searchQueryResponse.searchQuery) {
+      setYoutubeVideoUrl(youtubeLinkResponse.videoUrl || null);
+      setYoutubeSearchQueryUsed(youtubeLinkResponse.searchQueryUsed || null);
+
+      if (youtubeLinkResponse.videoUrl) {
           toast({
-              title: "YouTube Search Query Generated!",
-              description: "Click the button below to search on YouTube.",
+              title: "Related YouTube Video Found!",
+              description: "Check the 'Related Video' section.",
+              duration: 4000,
+          });
+      } else if (youtubeLinkResponse.searchQueryUsed) {
+          toast({
+              title: "YouTube Search",
+              description: `Could not find a specific video for "${youtubeLinkResponse.searchQueryUsed}". Try a broader query.`,
+              variant: "default",
+              duration: 5000,
+          });
+      } else {
+          toast({
+              title: "YouTube Search",
+              description: "Could not generate a YouTube video suggestion for this query.",
+              variant: "default",
               duration: 4000,
           });
       }
@@ -126,7 +147,7 @@ export function FoodAssistApp() {
               <Wand2 className="h-6 w-6 text-primary" />
               Chat with Food Assist AI
             </CardTitle>
-            <CardDescription>Ask about any food item for storage advice, reasoning, health benefits, and related videos.</CardDescription>
+            <CardDescription>Ask about any food item for storage advice, reasoning, health benefits, and a related video.</CardDescription>
           </CardHeader>
           <ScrollArea className="flex-grow p-4 md:p-6" viewportRef={scrollAreaRef}>
             <div className="space-y-4 min-h-[300px]">
@@ -140,7 +161,7 @@ export function FoodAssistApp() {
                     </div>
                     <Card className="max-w-xl shadow-md bg-card p-4">
                         <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                        <span className="ml-2 text-sm text-muted-foreground">Food Assist AI is typing...</span>
+                        <span className="ml-2 text-sm text-muted-foreground">Food Assist AI is thinking...</span>
                     </Card>
                  </div>
               )}
@@ -208,19 +229,23 @@ export function FoodAssistApp() {
           <CardHeader className="p-4 md:p-6 border-b">
             <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
               <Youtube className="h-6 w-6 text-red-600" />
-              Related Videos
+              Related Video
             </CardTitle>
-            <CardDescription>Suggested YouTube search for your current question.</CardDescription>
+            <CardDescription>A suggested YouTube video for your current question.</CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 min-h-[150px] flex flex-col justify-center">
-            {youtubeSearchQuery ? (
+            {isLoading && messages[messages.length -1]?.type === 'user' ? (
+                 <p className="text-sm text-center text-muted-foreground">Searching for video...</p>
+            ): youtubeVideoUrl ? (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground mb-1">
-                  Suggested search query:
+                  Here's a related video:
                 </p>
-                <p className="text-base font-semibold p-3 bg-muted rounded-md shadow-sm break-words">
-                  {youtubeSearchQuery}
-                </p>
+                 <div className="p-3 bg-muted rounded-md shadow-sm break-words">
+                    <a href={youtubeVideoUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline text-primary line-clamp-2" title={youtubeVideoUrl}>
+                        {youtubeVideoUrl}
+                    </a>
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
@@ -228,18 +253,18 @@ export function FoodAssistApp() {
                   className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
                 >
                   <a
-                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(youtubeSearchQuery)}`}
+                    href={youtubeVideoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Search on YouTube
+                    Watch on YouTube
                     <ExternalLink className="ml-2 h-4 w-4" />
                   </a>
                 </Button>
               </div>
             ) : (
               <p className="text-sm text-center text-muted-foreground">
-                {isLoading && messages[messages.length -1]?.type === 'user' ? 'Generating search query...' : 'Ask a question to get a YouTube search suggestion!'}
+                {youtubeSearchQueryUsed ? `No specific video found for query: "${youtubeSearchQueryUsed}".` : 'Ask a question to get a YouTube video suggestion!'}
               </p>
             )}
           </CardContent>
